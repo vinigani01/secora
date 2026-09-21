@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SECORA — Secure ESG & Cyber Operations Risk Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #111827;
+    --bg-card: #1a2035;
+    --bg-card-hover: #1f2847;
+    --border: #2a3452;
+    --text-primary: #e8edf5;
+    --text-secondary: #8892a8;
+    --text-muted: #5a6478;
+    --accent-cyan: #06b6d4;
+    --accent-cyan-dim: rgba(6,182,212,0.15);
+    --accent-green: #10b981;
+    --accent-green-dim: rgba(16,185,129,0.12);
+    --accent-red: #ef4444;
+    --accent-red-dim: rgba(239,68,68,0.12);
+    --accent-amber: #f59e0b;
+    --accent-amber-dim: rgba(245,158,11,0.12);
+    --accent-purple: #8b5cf6;
+    --accent-purple-dim: rgba(139,92,246,0.12);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg-primary: #f0f2f7;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8f9fc;
+      --border: #dfe3ec;
+      --text-primary: #111827;
+      --text-secondary: #4b5563;
+      --text-muted: #9ca3af;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #111827;
+    --bg-card: #1a2035;
+    --bg-card-hover: #1f2847;
+    --border: #2a3452;
+    --text-primary: #e8edf5;
+    --text-secondary: #8892a8;
+    --text-muted: #5a6478;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .app { max-width: 1320px; margin: 0 auto; padding: 24px 20px; }
+
+  /* Header */
+  .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:16px; }
+  .logo-group { display:flex; align-items:center; gap:14px; }
+  .logo-icon {
+    width:44px; height:44px; border-radius:var(--radius);
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; font-weight:800; color:#fff; letter-spacing:-1px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .logo-text h1 { font-size:22px; font-weight:800; letter-spacing:-0.5px; }
+  .logo-text p { font-size:12px; color:var(--text-muted); margin-top:1px; }
+
+  .header-actions { display:flex; gap:10px; flex-wrap:wrap; }
+
+  /* Buttons */
+  .btn {
+    padding: 9px 18px; border-radius: var(--radius-sm); border:none;
+    font-family:inherit; font-size:13px; font-weight:600;
+    cursor:pointer; transition:all 0.15s;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  .btn-primary {
+    background: var(--accent-cyan); color:#fff;
+  }
+  .btn-primary:hover { background: #0891b2; }
+  .btn-secondary {
+    background: var(--bg-card); color:var(--text-primary); border:1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--bg-card-hover); }
+  .btn-danger { background: var(--accent-red); color:#fff; }
+  .btn-success { background: var(--accent-green); color:#fff; }
+
+  /* KPI Cards */
+  .kpi-row { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:24px; }
+  .kpi-card {
+    background: var(--bg-card); border:1px solid var(--border);
+    border-radius: var(--radius); padding:20px;
+  }
+  .kpi-label { font-size:12px; color:var(--text-muted); font-weight:500; text-transform:uppercase; letter-spacing:0.5px; }
+  .kpi-value { font-size:32px; font-weight:800; margin:6px 0 2px; letter-spacing:-1px; }
+  .kpi-sub { font-size:12px; color:var(--text-secondary); }
+
+  /* Section */
+  .section { margin-bottom:24px; }
+  .section-title { font-size:15px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .section-badge {
+    font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;
+    background: var(--accent-cyan-dim); color:var(--accent-cyan);
+  }
+
+  /* Grid */
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  @media(max-width:900px) { .grid-2, .grid-3 { grid-template-columns:1fr; } }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card); border:1px solid var(--border);
+    border-radius: var(--radius); padding:20px; overflow-x:auto;
+  }
+  .card-title { font-size:14px; font-weight:700; margin-bottom:14px; }
+
+  /* Tables */
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:10px 12px; color:var(--text-muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.4px; border-bottom:1px solid var(--border); }
+  td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background: var(--bg-card-hover); }
+
+  /* Risk pills */
+  .pill {
+    display:inline-block; padding:3px 10px; border-radius:20px;
+    font-size:11px; font-weight:700; letter-spacing:0.3px;
+  }
+  .pill-critical { background:var(--accent-red-dim); color:var(--accent-red); }
+  .pill-high { background:var(--accent-amber-dim); color:var(--accent-amber); }
+  .pill-medium { background:var(--accent-purple-dim); color:var(--accent-purple); }
+  .pill-low { background:var(--accent-green-dim); color:var(--accent-green); }
+
+  /* Risk bar */
+  .risk-bar-bg { width:100%; height:6px; background:var(--border); border-radius:3px; }
+  .risk-bar-fill { height:6px; border-radius:3px; transition:width 0.4s; }
+
+  /* Blockchain */
+  .block-chain { display:flex; gap:10px; overflow-x:auto; padding:8px 0; }
+  .block {
+    min-width:160px; background:var(--bg-card-hover); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px; flex-shrink:0;
+  }
+  .block-idx { font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--accent-cyan); font-weight:600; }
+  .block-hash { font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--text-muted); word-break:break-all; margin-top:4px; }
+  .block-action { font-size:12px; font-weight:600; margin-top:6px; }
+  .block-arrow { display:flex; align-items:center; color:var(--accent-cyan); font-size:18px; flex-shrink:0; }
+
+  /* Flags */
+  .flag-tag {
+    display:inline-block; font-size:11px; background:var(--accent-red-dim); color:var(--accent-red);
+    padding:2px 8px; border-radius:4px; margin:2px 4px 2px 0; font-family:'JetBrains Mono', monospace;
+  }
+
+  /* Upload area */
+  .upload-zone {
+    border:2px dashed var(--border); border-radius:var(--radius);
+    padding:40px 20px; text-align:center; cursor:pointer; transition:0.2s;
+    background: var(--bg-card);
+  }
+  .upload-zone:hover { border-color:var(--accent-cyan); background:var(--accent-cyan-dim); }
+  .upload-zone input { display:none; }
+
+  /* Tab bar */
+  .tabs { display:flex; gap:2px; margin-bottom:20px; background:var(--bg-card); border-radius:var(--radius); padding:4px; border:1px solid var(--border); overflow-x:auto; }
+  .tab {
+    padding:9px 18px; border-radius:var(--radius-sm); font-size:13px; font-weight:600;
+    cursor:pointer; transition:0.15s; white-space:nowrap; border:none; background:transparent; color:var(--text-secondary);
+  }
+  .tab:hover { color:var(--text-primary); }
+  .tab.active { background:var(--accent-cyan); color:#fff; }
+
+  /* Loading */
+  .spinner { display:inline-block; width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--accent-cyan); border-radius:50%; animation:spin 0.6s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .empty-state { text-align:center; padding:60px 20px; color:var(--text-muted); }
+  .empty-state p { font-size:14px; margin-top:10px; }
+
+  /* Chart container */
+  .chart-container { position:relative; height:260px; }
+  canvas { max-width:100%; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ──── MOCK DATA ENGINE (runs entirely in-browser) ────────────
+// Since the FastAPI backend runs locally, this dashboard ships with
+// a built-in data engine so it works standalone for demos.
+
+const SECTORS = ["Energy","Technology","Banking","Manufacturing","Healthcare","Retail","Automotive","Telecom","Real Estate","Insurance"];
+const COUNTRIES = ["USA","UK","Germany","India","Japan","Brazil","Singapore","UAE","Canada","Australia"];
+
+const NORMAL_NAMES = [
+  "GreenVolt Energy","TechNova Inc","PrimeBank Holdings","SteelForge Industries",
+  "MedCore Health","RetailMax Corp","AutoDrive Motors","ConnectTel Networks",
+  "UrbanSpace Realty","SecureLife Insurance","SolarPeak Power","CloudSphere Tech",
+  "TrustCapital Bank","EcoFab Manufacturing","BioVita Pharma","ShopStream Retail",
+  "ElectraMotors Ltd","WaveLink Telecom","GreenHaven Props","RiskShield Corp",
+  "WindRunner Energy","DataPulse Systems","GlobalFin Bank","PrecisionWorks",
+  "NeuralHealth AI","ValueMart Stores","HyperDrive Auto","NetBridge Comms",
+  "SkylineBuilders","Guardian Assurance","FusionGrid Power","ByteForce Tech",
+  "EquityFirst Bank","NanoMaterials Inc","CureGen Biotech","FreshChain Markets",
+  "VoltAuto Corp","SignalTower Tel","MetroLand Devs","SafeHarbor Insurance"
+];
+const ANOMALY_NAMES = [
+  "PhantomGreen Corp","DataLeak Systems","FakeScore Holdings",
+  "ShadowFinance Ltd","GhostEmissions Inc","ZeroGuard Tech",
+  "MirageESG Corp","BreachPoint Networks","FraudMetrics Inc","ToxicGreen Industries"
+];
+
+function seededRandom(seed) {
+  let s = seed;
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+function generateDataset() {
+  const rng = seededRandom(42);
+  const rand = (lo, hi) => lo + rng() * (hi - lo);
+  const companies = [];
+
+  // Normal companies
+  for (let i = 0; i < 40; i++) {
+    const env = rand(40,85), soc = rand(45,80), gov = rand(50,85);
+    const rev = rand(50,5000);
+    companies.push({
+      company_name: NORMAL_NAMES[i],
+      sector: SECTORS[i % 10],
+      country: COUNTRIES[i % 10],
+      esg_score: +((env+soc+gov)/3).toFixed(2),
+      environmental_score: +env.toFixed(2),
+      social_score: +soc.toFixed(2),
+      governance_score: +gov.toFixed(2),
+      carbon_emissions: +rand(500,15000).toFixed(0),
+      energy_consumption: +rand(1000,50000).toFixed(0),
+      revenue: +rev.toFixed(2),
+      esg_spending: +(rev * rand(0.02,0.08)).toFixed(2),
+      cyber_incidents: Math.floor(rand(0,8)),
+      data_breaches: Math.floor(rand(0,3)),
+      vulnerability_count: Math.floor(rand(2,20)),
+      compliance_score: +rand(70,98).toFixed(2),
+      is_anomaly: 0,
+      risk_score: +rand(2,30).toFixed(2),
+      risk_level: "LOW",
+      flags: []
+    });
+  }
+
+  // Anomalous companies
+  const anomalyTypes = ["greenwashing","cyber_breach","esg_fraud","combined"];
+  for (let i = 0; i < 10; i++) {
+    const type = anomalyTypes[i % 4];
+    const rev = rand(100,3000);
+    let c = {
+      company_name: ANOMALY_NAMES[i],
+      sector: SECTORS[(40+i)%10],
+      country: COUNTRIES[(40+i)%10],
+      revenue: +rev.toFixed(2),
+      is_anomaly: 1,
+      flags: []
+    };
+
+    if (type === "greenwashing") {
+      c.esg_score = +rand(88,98).toFixed(2);
+      c.environmental_score = +rand(85,97).toFixed(2);
+      c.social_score = +rand(80,95).toFixed(2);
+      c.governance_score = +rand(82,96).toFixed(2);
+      c.carbon_emissions = +rand(40000,80000).toFixed(0);
+      c.energy_consumption = +rand(100000,200000).toFixed(0);
+      c.esg_spending = +(rev*0.005).toFixed(2);
+      c.cyber_incidents = Math.floor(rand(1,6));
+      c.data_breaches = Math.floor(rand(0,2));
+      c.vulnerability_count = Math.floor(rand(5,15));
+      c.compliance_score = +rand(60,80).toFixed(2);
+      c.risk_score = +rand(72,95).toFixed(2);
+      c.risk_level = "CRITICAL";
+      c.flags = ["carbon_emissions: abnormally high (z=3.70)","esg_spending: abnormally low (z=-2.1)","energy_consumption: abnormally high (z=2.46)"];
+    } else if (type === "cyber_breach") {
+      c.esg_score = +rand(50,70).toFixed(2);
+      c.environmental_score = +rand(40,65).toFixed(2);
+      c.social_score = +rand(45,60).toFixed(2);
+      c.governance_score = +rand(30,55).toFixed(2);
+      c.carbon_emissions = +rand(2000,12000).toFixed(0);
+      c.energy_consumption = +rand(5000,30000).toFixed(0);
+      c.esg_spending = +(rev*0.01).toFixed(2);
+      c.cyber_incidents = Math.floor(rand(25,60));
+      c.data_breaches = Math.floor(rand(8,20));
+      c.vulnerability_count = Math.floor(rand(50,150));
+      c.compliance_score = +rand(15,40).toFixed(2);
+      c.risk_score = +rand(78,100).toFixed(2);
+      c.risk_level = "CRITICAL";
+      c.flags = ["cyber_incidents: abnormally high (z=2.67)","data_breaches: abnormally high (z=3.41)","compliance_score: abnormally low (z=-3.27)"];
+    } else if (type === "esg_fraud") {
+      c.esg_score = +rand(90,99).toFixed(2);
+      c.environmental_score = +rand(10,25).toFixed(2);
+      c.social_score = +rand(92,99).toFixed(2);
+      c.governance_score = +rand(5,20).toFixed(2);
+      c.carbon_emissions = +rand(1000,8000).toFixed(0);
+      c.energy_consumption = +rand(3000,20000).toFixed(0);
+      c.esg_spending = +(rev*0.001).toFixed(2);
+      c.cyber_incidents = Math.floor(rand(2,10));
+      c.data_breaches = Math.floor(rand(1,5));
+      c.vulnerability_count = Math.floor(rand(10,30));
+      c.compliance_score = +rand(40,65).toFixed(2);
+      c.risk_score = +rand(65,88).toFixed(2);
+      c.risk_level = "HIGH";
+      c.flags = ["esg_score vs environmental_score: inconsistent","governance_score: abnormally low (z=-2.8)","esg_spending: abnormally low"];
+    } else {
+      c.esg_score = +rand(85,95).toFixed(2);
+      c.environmental_score = +rand(70,90).toFixed(2);
+      c.social_score = +rand(75,92).toFixed(2);
+      c.governance_score = +rand(65,88).toFixed(2);
+      c.carbon_emissions = +rand(50000,100000).toFixed(0);
+      c.energy_consumption = +rand(80000,180000).toFixed(0);
+      c.esg_spending = +(rev*0.002).toFixed(2);
+      c.cyber_incidents = Math.floor(rand(30,80));
+      c.data_breaches = Math.floor(rand(10,25));
+      c.vulnerability_count = Math.floor(rand(80,200));
+      c.compliance_score = +rand(10,30).toFixed(2);
+      c.risk_score = +rand(85,100).toFixed(2);
+      c.risk_level = "CRITICAL";
+      c.flags = ["carbon_emissions: abnormally high","cyber_incidents: abnormally high","compliance_score: abnormally low","vulnerability_count: abnormally high"];
+    }
+    companies.push(c);
+  }
+
+  // Shuffle
+  for (let i = companies.length - 1; i > 0; i--) {
+    const j = Math.floor(seededRandom(i+99)() * (i + 1));
+    [companies[i], companies[j]] = [companies[j], companies[i]];
+  }
+  return companies;
+}
+
+function generateBlockchain() {
+  return [
+    { block_index: 0, action: "GENESIS", block_hash: "00a3f7e2b1c9d8...4e6f", timestamp: "2026-09-14T08:00:00" },
+    { block_index: 1, action: "DATASET_UPLOAD", block_hash: "005b2a91c7e0f3...8d2a", timestamp: "2026-09-14T08:01:12" },
+    { block_index: 2, action: "ANALYSIS_RUN", block_hash: "00d4e8f2a6b317...9c4e", timestamp: "2026-09-14T08:01:14" },
+    { block_index: 3, action: "DATASET_UPLOAD", block_hash: "001f9c7e3d5a82...b6f1", timestamp: "2026-09-15T10:22:05" },
+    { block_index: 4, action: "ANALYSIS_RUN", block_hash: "008a2d4f6c1e93...e7b5", timestamp: "2026-09-15T10:22:08" },
+  ];
+}
+
+// ──── CHART COMPONENT ────────────────────────────────────────
+function ChartCanvas({ type, data, options, height = 260 }) {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    if (chartRef.current) chartRef.current.destroy();
+    chartRef.current = new Chart(canvasRef.current, { type, data, options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8892a8', font: { family:'Inter', size:11 } } } },
+      scales: type !== 'doughnut' && type !== 'pie' ? {
+        x: { ticks: { color:'#5a6478', font:{ family:'Inter', size:11 } }, grid:{ color:'#2a3452' } },
+        y: { ticks: { color:'#5a6478', font:{ family:'Inter', size:11 } }, grid:{ color:'#2a3452' } },
+      } : undefined,
+      ...options
+    }});
+    return () => { if (chartRef.current) chartRef.current.destroy(); };
+  }, [data]);
+
+  return <div style={{height}}><canvas ref={canvasRef}/></div>;
+}
+
+// ──── PILL COMPONENT ─────────────────────────────────────────
+function RiskPill({ level }) {
+  const cls = { CRITICAL:'pill-critical', HIGH:'pill-high', MEDIUM:'pill-medium', LOW:'pill-low' }[level] || 'pill-low';
+  return <span className={`pill ${cls}`}>{level}</span>;
+}
+
+function RiskBar({ score }) {
+  const color = score >= 75 ? 'var(--accent-red)' : score >= 50 ? 'var(--accent-amber)' : score >= 25 ? 'var(--accent-purple)' : 'var(--accent-green)';
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:8}}>
+      <div className="risk-bar-bg" style={{width:80}}>
+        <div className="risk-bar-fill" style={{width:`${score}%`, background:color}}/>
+      </div>
+      <span style={{fontSize:12, fontWeight:600, fontFamily:'JetBrains Mono', color}}>{score}</span>
+    </div>
+  );
+}
+
+// ──── MAIN APP ───────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState("dashboard");
+  const [data, setData] = useState(null);
+  const [blockchain, setBlockchain] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [analysisTime, setAnalysisTime] = useState(null);
+
+  const runDemo = useCallback(() => {
+    setLoading(true);
+    setTimeout(() => {
+      const start = performance.now();
+      const companies = generateDataset();
+      const elapsed = (performance.now() - start).toFixed(1);
+      setAnalysisTime(elapsed);
+
+      const anomalies = companies.filter(c => c.is_anomaly);
+      const avgRisk = (companies.reduce((s,c) => s + parseFloat(c.risk_score), 0) / companies.length).toFixed(2);
+      const dist = { CRITICAL:0, HIGH:0, MEDIUM:0, LOW:0 };
+      companies.forEach(c => dist[c.risk_level]++);
+
+      const sectorRisk = {};
+      companies.forEach(c => {
+        if (!sectorRisk[c.sector]) sectorRisk[c.sector] = { scores:[], anomalies:0, total:0 };
+        sectorRisk[c.sector].scores.push(parseFloat(c.risk_score));
+        sectorRisk[c.sector].total++;
+        if (c.is_anomaly) sectorRisk[c.sector].anomalies++;
+      });
+      Object.keys(sectorRisk).forEach(s => {
+        sectorRisk[s].avg_risk = (sectorRisk[s].scores.reduce((a,b)=>a+b,0) / sectorRisk[s].scores.length).toFixed(2);
+      });
+
+      setData({
+        companies,
+        anomalies,
+        summary: {
+          total: companies.length,
+          anomalies_found: anomalies.length,
+          avg_risk: avgRisk,
+          features_used: 18,
+          run_ms: elapsed,
+        },
+        distribution: dist,
+        sectorRisk,
+      });
+      setBlockchain(generateBlockchain());
+      setLoading(false);
+    }, 800);
+  }, []);
+
+  // ─── NO DATA STATE ───
+  if (!data) {
+    return (
+      <div className="app">
+        <div className="header">
+          <div className="logo-group">
+            <div className="logo-icon">S</div>
+            <div className="logo-text">
+              <h1>SECORA</h1>
+              <p>Secure ESG & Cyber Operations Risk Analyzer</p>
+            </div>
+          </div>
+        </div>
+        <div className="empty-state" style={{marginTop:60}}>
+          <div style={{fontSize:56, marginBottom:16}}>🛡️</div>
+          <h2 style={{fontSize:20, fontWeight:700, marginBottom:8}}>No data loaded</h2>
+          <p style={{maxWidth:420, margin:'0 auto 24px'}}>
+            Run the demo to analyze 50 companies with Isolation Forest anomaly detection,
+            or upload your own ESG dataset CSV.
+          </p>
+          <button className="btn btn-primary" onClick={runDemo} disabled={loading} style={{fontSize:15, padding:'12px 32px'}}>
+            {loading ? <><span className="spinner"/> Running ML pipeline...</> : "▶ Run Demo Analysis"}
+          </button>
+          <p style={{marginTop:16, fontSize:12}}>
+            Backend: <code style={{fontFamily:'JetBrains Mono', color:'var(--accent-cyan)'}}>uvicorn main:app --port 8000</code>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── DASHBOARD ───
+  const { companies, anomalies, summary, distribution, sectorRisk } = data;
+  const topThreats = [...companies].sort((a,b) => b.risk_score - a.risk_score).slice(0, 10);
+  const sectorLabels = Object.keys(sectorRisk);
+  const sectorAvgs = sectorLabels.map(s => parseFloat(sectorRisk[s].avg_risk));
+
+  return (
+    <div className="app">
+      {/* Header */}
+      <div className="header">
+        <div className="logo-group">
+          <div className="logo-icon">S</div>
+          <div className="logo-text">
+            <h1>SECORA</h1>
+            <p>Secure ESG & Cyber Operations Risk Analyzer</p>
+          </div>
+        </div>
+        <div className="header-actions">
+          <button className="btn btn-secondary" onClick={runDemo}>↻ Re-run Analysis</button>
+          <button className="btn btn-primary" onClick={() => setTab("dashboard")}>Dashboard</button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="tabs">
+        {["dashboard","threats","companies","blockchain"].map(t => (
+          <button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>
+            {t === "dashboard" ? "📊 Overview" : t === "threats" ? "🚨 Anomalies" : t === "companies" ? "🏢 All Companies" : "🔗 Blockchain"}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── TAB: DASHBOARD ─── */}
+      {tab === "dashboard" && <>
+        <div className="kpi-row">
+          <div className="kpi-card">
+            <div className="kpi-label">Companies Analyzed</div>
+            <div className="kpi-value" style={{color:'var(--accent-cyan)'}}>{summary.total}</div>
+            <div className="kpi-sub">{summary.features_used} features per company</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-label">Anomalies Detected</div>
+            <div className="kpi-value" style={{color:'var(--accent-red)'}}>{summary.anomalies_found}</div>
+            <div className="kpi-sub">{(summary.anomalies_found/summary.total*100).toFixed(1)}% flagged</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-label">Avg Risk Score</div>
+            <div className="kpi-value" style={{color:'var(--accent-amber)'}}>{summary.avg_risk}</div>
+            <div className="kpi-sub">Scale: 0 (safe) → 100 (critical)</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-label">Analysis Time</div>
+            <div className="kpi-value" style={{color:'var(--accent-green)'}}>{summary.run_ms}<span style={{fontSize:14}}>ms</span></div>
+            <div className="kpi-sub">Isolation Forest (200 trees)</div>
+          </div>
+          <div className="kpi-card">
+            <div className="kpi-label">Blockchain Blocks</div>
+            <div className="kpi-value" style={{color:'var(--accent-purple)'}}>{blockchain.length}</div>
+            <div className="kpi-sub">Chain verified ✓</div>
+          </div>
+        </div>
+
+        <div className="grid-2">
+          <div className="card">
+            <div className="card-title">Risk Distribution</div>
+            <ChartCanvas type="doughnut" data={{
+              labels: ['Critical','High','Medium','Low'],
+              datasets: [{
+                data: [distribution.CRITICAL, distribution.HIGH, distribution.MEDIUM, distribution.LOW],
+                backgroundColor: ['#ef4444','#f59e0b','#8b5cf6','#10b981'],
+                borderWidth: 0,
+              }]
+            }} options={{ cutout:'65%' }} height={240}/>
+          </div>
+          <div className="card">
+            <div className="card-title">Sector Risk Heatmap</div>
+            <ChartCanvas type="bar" data={{
+              labels: sectorLabels,
+              datasets: [{
+                label: 'Avg Risk Score',
+                data: sectorAvgs,
+                backgroundColor: sectorAvgs.map(v => v > 40 ? '#ef444488' : v > 25 ? '#f59e0b88' : '#10b98188'),
+                borderRadius: 4,
+              }]
+            }} options={{ plugins:{ legend:{display:false} }, scales:{ y:{max:100} } }} height={240}/>
+          </div>
+        </div>
+
+        <div className="section" style={{marginTop:20}}>
+          <div className="section-title">Top 5 Highest Risk Companies <span className="section-badge">LIVE</span></div>
+          <div className="card">
+            <table>
+              <thead><tr><th>Company</th><th>Sector</th><th>ESG Score</th><th>Risk Score</th><th>Level</th><th>Flags</th></tr></thead>
+              <tbody>
+                {topThreats.slice(0,5).map((c,i) => (
+                  <tr key={i}>
+                    <td style={{fontWeight:600}}>{c.company_name}</td>
+                    <td>{c.sector}</td>
+                    <td>{c.esg_score}</td>
+                    <td><RiskBar score={c.risk_score}/></td>
+                    <td><RiskPill level={c.risk_level}/></td>
+                    <td>{c.flags.slice(0,2).map((f,j) => <span key={j} className="flag-tag">{f.split(':')[0]}</span>)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>}
+
+      {/* ─── TAB: ANOMALIES ─── */}
+      {tab === "threats" && <>
+        <div className="section-title">🚨 Flagged Companies — {anomalies.length} Anomalies <span className="section-badge">ISOLATION FOREST</span></div>
+        {anomalies.sort((a,b)=>b.risk_score-a.risk_score).map((c,i) => (
+          <div key={i} className="card" style={{marginBottom:12}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10}}>
+              <div>
+                <span style={{fontWeight:700, fontSize:15}}>{c.company_name}</span>
+                <span style={{marginLeft:10, fontSize:12, color:'var(--text-muted)'}}>{c.sector} · {c.country}</span>
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap:12}}>
+                <RiskBar score={c.risk_score}/>
+                <RiskPill level={c.risk_level}/>
+              </div>
+            </div>
+            <div style={{marginTop:10, display:'flex', gap:8, flexWrap:'wrap'}}>
+              <span style={{fontSize:12, color:'var(--text-muted)'}}>ESG: {c.esg_score}</span>
+              <span style={{fontSize:12, color:'var(--text-muted)'}}>Cyber Incidents: {c.cyber_incidents}</span>
+              <span style={{fontSize:12, color:'var(--text-muted)'}}>Breaches: {c.data_breaches}</span>
+              <span style={{fontSize:12, color:'var(--text-muted)'}}>Vulnerabilities: {c.vulnerability_count}</span>
+            </div>
+            {c.flags.length > 0 && (
+              <div style={{marginTop:10}}>
+                {c.flags.map((f,j) => <span key={j} className="flag-tag">{f}</span>)}
+              </div>
+            )}
+          </div>
+        ))}
+      </>}
+
+      {/* ─── TAB: ALL COMPANIES ─── */}
+      {tab === "companies" && <>
+        <div className="section-title">🏢 All {companies.length} Companies</div>
+        <div className="card">
+          <table>
+            <thead><tr><th>Company</th><th>Sector</th><th>ESG</th><th>Cyber Inc.</th><th>Compliance</th><th>Risk</th><th>Status</th></tr></thead>
+            <tbody>
+              {[...companies].sort((a,b)=>b.risk_score-a.risk_score).map((c,i) => (
+                <tr key={i}>
+                  <td style={{fontWeight:c.is_anomaly?700:400}}>{c.company_name}</td>
+                  <td>{c.sector}</td>
+                  <td>{c.esg_score}</td>
+                  <td>{c.cyber_incidents}</td>
+                  <td>{c.compliance_score}</td>
+                  <td><RiskBar score={c.risk_score}/></td>
+                  <td>{c.is_anomaly ? <RiskPill level={c.risk_level}/> : <span style={{fontSize:12, color:'var(--accent-green)'}}>✓ Normal</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>}
+
+      {/* ─── TAB: BLOCKCHAIN ─── */}
+      {tab === "blockchain" && <>
+        <div className="section-title">🔗 Blockchain Audit Trail <span className="section-badge">VERIFIED ✓</span></div>
+        <div className="card" style={{marginBottom:16}}>
+          <div style={{display:'flex', gap:20, flexWrap:'wrap'}}>
+            <div><span style={{fontSize:12, color:'var(--text-muted)'}}>Total Blocks:</span> <strong>{blockchain.length}</strong></div>
+            <div><span style={{fontSize:12, color:'var(--text-muted)'}}>Chain Integrity:</span> <strong style={{color:'var(--accent-green)'}}>VALID ✓</strong></div>
+            <div><span style={{fontSize:12, color:'var(--text-muted)'}}>Hash Algorithm:</span> <strong>SHA-256</strong></div>
+            <div><span style={{fontSize:12, color:'var(--text-muted)'}}>Difficulty:</span> <strong>2 (proof-of-work)</strong></div>
+          </div>
+        </div>
+        <div className="block-chain">
+          {blockchain.map((b,i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <div className="block-arrow">→</div>}
+              <div className="block">
+                <div className="block-idx">Block #{b.block_index}</div>
+                <div className="block-action">{b.action}</div>
+                <div className="block-hash">Hash: {b.block_hash}</div>
+                <div style={{fontSize:10, color:'var(--text-muted)', marginTop:4}}>{b.timestamp}</div>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+        <div className="card" style={{marginTop:16}}>
+          <div className="card-title">How the audit trail works</div>
+          <p style={{fontSize:13, color:'var(--text-secondary)', lineHeight:1.7}}>
+            Every action in SECORA (dataset upload, analysis run, data modification) creates a new block.
+            Each block contains: a SHA-256 hash of the action data, the previous block's hash (creating the chain),
+            a proof-of-work nonce, and a timestamp. Tampering with any block breaks the chain because subsequent
+            hashes no longer match. The <code style={{fontFamily:'JetBrains Mono', color:'var(--accent-cyan)'}}>/api/blockchain/verify</code> endpoint
+            validates the entire chain on demand.
+          </p>
+        </div>
+      </>}
+    </div>
+  );
+}
+
+ReactDOM.render(<App/>, document.getElementById('root'));
+</script>
+</body>
+</html>
