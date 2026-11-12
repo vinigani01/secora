@@ -55,8 +55,9 @@ def analyze(dataset_id: int, db: Session = Depends(get_db)):
     companies = db.query(Company).filter(Company.dataset_id == dataset_id).all()
     if not companies: raise HTTPException(status_code=404, detail="Dataset not found")
     
-    comp_df = pd.DataFrame([{c.name: getattr(c, c.name) for c in c.__table__.columns} for c in companies])
-    comp_ids = comp_df['id'].tolist()
+    comp_df = pd.DataFrame([{col.name: getattr(comp, col.name) for col in Company.__table__.columns} for comp in companies])
+    cyb_df = pd.DataFrame([{col.name: getattr(cyb, col.name) for col in CyberThreat.__table__.columns} for cyb in cybers])
+    
     cybers = db.query(CyberThreat).filter(CyberThreat.company_id.in_(comp_ids)).all()
     cyb_df = pd.DataFrame([{c.name: getattr(c, c.name) for c in c.__table__.columns} for c in cybers])
     
