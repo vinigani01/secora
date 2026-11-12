@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: secora-backend
+    env: docker
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: secora-db
+          property: connectionString
+
+  - type: web
+    name: secora-frontend
+    env: docker
+    region: singapore
+    dockerfilePath: ./frontend/Dockerfile
+    envVars:
+      - key: VITE_API_URL
+        value: https://secora-backend.onrender.com/api
+
+databases:
+  - name: secora-db
+    region: singapore
+    plan: free
+    databaseName: secora_db
+    user: secora_user
