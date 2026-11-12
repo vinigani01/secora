@@ -41,7 +41,8 @@ async def upload_csv(companies_file: UploadFile = File(...), cyber_file: UploadF
             db.refresh(comp)
             
             cyb_row = cyb_df.iloc[i].to_dict()
-            del cyb_row['company_id']
+            if 'company_id' in cyb_row:
+                del cyb_row['company_id']
             cyb = CyberThreat(company_id=comp.id, **cyb_row)
             db.add(cyb)
             
@@ -53,15 +54,39 @@ async def upload_csv(companies_file: UploadFile = File(...), cyber_file: UploadF
 @app.post("/api/analyze/{dataset_id}")
 def analyze(dataset_id: int, db: Session = Depends(get_db)):
     companies = db.query(Company).filter(Company.dataset_id == dataset_id).all()
-    if not companies: raise HTTPException(status_code=404, detail="Dataset not found")
+    if not companies: 
+        raise HTTPException(status_code=404, detail="Dataset not found")
     
-    comp_df = pd.DataFrame([{col.name: getattr(comp, col.name) for col in Company.__table__.columns} for comp in companies])
-    cyb_df = pd.DataFrame([{col.name: getattr(cyb, col.name) for col in CyberThreat.__table__.columns} for cyb in cybers])
+    comp_data = []
+    comp_ids = []
+    for c in companies:
+        comp_ids.append(c.id)
+        comp_data.append({
+            "company_id": c.id,
+            "name": c.name,
+            "env_score": c.env_score,
+            "soc_score": c.soc_score,
+            "gov_score": c.gov_score,
+            "composite": c.composite,
+            "yoy_change": c.yoy_change,
+            "revenue": c.revenue,
+            "emissions": c.emissions,
+            "esg_expenditure": c.esg_expenditure,
+            "sector": c.sector
+        })
+    comp_df = pd.DataFrame(comp_data)
     
     cybers = db.query(CyberThreat).filter(CyberThreat.company_id.in_(comp_ids)).all()
-    cyb_df = pd.DataFrame([{c.name: getattr(c, c.name) for c in c.__table__.columns} for c in cybers])
+    cyb_data = []
+    for cyb in cybers:
+        cyb_data.append({
+            "company_id": cyb.company_id,
+            "incidents": cyb.incidents,
+            "breaches": cyb.breaches,
+            "flow_duration": cyb.flow_duration
+        })
+    cyb_df = pd.DataFrame(cyb_data)
     
-    comp_df.rename(columns={'id': 'company_id'}, inplace=True)
     results, manifest_hash = pipeline.process_and_score(comp_df, cyb_df)
     
     run = AnalysisRun(dataset_id=dataset_id, manifest_hash=manifest_hash)
@@ -71,7 +96,15 @@ def analyze(dataset_id: int, db: Session = Depends(get_db)):
     
     req_id = str(uuid.uuid4())
     for res in results:
-        ar = AnomalyResult(run_id=run.id, **res)
+        ar = AnomalyResult(
+            run_id=run.id,
+            company_id=res["company_id"],
+            esg_score=res["esg_score"],
+            cyber_score=res["cyber_score"],
+            aggregate_risk=res["aggregate_risk"],
+            risk_category=res["risk_category"],
+            features_json=res["features_json"]
+        )
         db.add(ar)
         blockchain.append_to_ledger(db, run.id, req_id, res['aggregate_risk'], res['esg_score'], res['cyber_score'], manifest_hash)
     
@@ -81,7 +114,8 @@ def analyze(dataset_id: int, db: Session = Depends(get_db)):
 @app.get("/api/dashboard/{run_id}")
 def dashboard(run_id: int, db: Session = Depends(get_db)):
     results = db.query(AnomalyResult).filter(AnomalyResult.run_id == run_id).all()
-    if not results: return {"status": "stale", "message": "Model unavailable/No data"}
+    if not results: 
+        return {"status": "stale", "message": "Model unavailable/No data"}
     
     categories = {"LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0}
     flags = []
@@ -90,11 +124,14 @@ def dashboard(run_id: int, db: Session = Depends(get_db)):
         categories[r.risk_category] += 1
         if r.risk_category in ["HIGH", "CRITICAL"]:
             comp = db.query(Company).filter(Company.id == r.company_id).first()
-            flags.append({
-                "company": comp.name, "sector": comp.sector, 
-                "risk": round(r.aggregate_risk * 100, 2), 
-                "category": r.risk_category, "z_scores": r.features_json
-            })
+            if comp:
+                flags.append({
+                    "company": comp.name, 
+                    "sector": comp.sector, 
+                    "risk": round(r.aggregate_risk * 100, 2), 
+                    "category": r.risk_category, 
+                    "z_scores": r.features_json
+                })
             
     return {"distribution": categories, "flags": flags, "status": "fresh"}
 
